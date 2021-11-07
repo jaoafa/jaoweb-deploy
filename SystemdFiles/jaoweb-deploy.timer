@@ -1,0 +1,9 @@
+[Unit]
+Description=jaoweb-deploy
+
+[Timer]
+Unit=jaoweb-deploy.service
+OnCalendar=*:0/5
+
+[Install]
+WantedBy=timers.target
