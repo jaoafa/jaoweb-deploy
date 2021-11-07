@@ -122,6 +122,14 @@ async function main(_dest: string) {
   console.log(`Published at: ${latest.published_at}`)
   console.log(`Download URL: ${latest.browser_download_url}`)
 
+  const current = fs.existsSync('./current')
+    ? fs.readFileSync('./current', 'utf8')
+    : null
+  if (current === latest.id.toString()) {
+    console.log('Already up to date.')
+    return
+  }
+
   if (fs.existsSync('./dist.tgz')) {
     fs.unlinkSync('./dist.tgz')
   }
@@ -149,6 +157,8 @@ async function main(_dest: string) {
     url: `${latest.html_url}`,
     color: 0x00ff00,
   })
+
+  fs.writeFileSync('./current', latest.id.toString())
 }
 
 ;(async () => {
