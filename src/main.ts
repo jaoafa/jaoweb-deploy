@@ -8,6 +8,7 @@ import { GitHubReleaseRoot } from './models/release'
 class Release {
   constructor(
     public id: number,
+    public name: string,
     // eslint-disable-next-line camelcase
     public published_at: Date,
     // eslint-disable-next-line camelcase
@@ -37,6 +38,7 @@ async function getLatestRelease(repo: string): Promise<Release | null> {
   }
   return new Release(
     latest.id,
+    latest.name,
     new Date(latest.published_at),
     latest.html_url,
     latest.assets[0].browser_download_url
@@ -110,6 +112,8 @@ async function main(_dest: string) {
       : jaowebLatest != null
       ? jaowebLatest
       : docsLatest
+  const latestType =
+    jaowebLatest === latest ? 'jaoweb' : docsLatest === latest ? 'docs' : 'NULL'
   if (latest == null) {
     console.log('No release found.')
     return
@@ -141,6 +145,7 @@ async function main(_dest: string) {
 
   sendMessageForDiscord('', {
     title: '`jaoafa.com` へのデプロイが完了',
+    description: `${latest.name} in ${latestType} (${latest.published_at})`,
     url: `${latest.html_url}`,
     color: 0x00ff00,
   })
@@ -148,7 +153,7 @@ async function main(_dest: string) {
 
 ;(async () => {
   try {
-    await main(config.get("destDirectory"))
+    await main(config.get('destDirectory'))
   } catch (error) {
     sendMessageForDiscord('', {
       title: '`jaoafa.com` へのデプロイが失敗',
