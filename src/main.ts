@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { exec } from 'child_process'
+import config from 'config'
 import fs from 'fs'
+import path from 'path'
 import { GitHubReleaseRoot } from './models/release'
 
 class Release {
@@ -59,18 +61,45 @@ async function downloadFile(url: string, dest: string): Promise<boolean> {
   })
 }
 
-async function runCommand(command: string) {
+async function runCommand(command: string, cwd = '.') {
   return new Promise<string>((resolve, reject) => {
-    exec(command, (err: any, stdout: string) => {
-      if (err) {
-        reject(err)
+    exec(
+      command,
+      {
+        cwd,
+      },
+      (err: any, stdout: string) => {
+        if (err) {
+          reject(err)
+        }
+        resolve(stdout)
       }
-      resolve(stdout)
-    })
+    )
   })
 }
+async function sendMessageForDiscord(
+  content: string,
+  embed: { [key: string]: any }
+) {
+  const channelId = config.get('discordChannelId') as string
+  const token = config.get('discordToken') as string
+  await axios.post(
+    `https://discord.com/api/channels/${channelId}/messages`,
+    {
+      content,
+      embed,
+    },
+    {
+      headers: {
+        Authorization: `Bot ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+}
 
-async function main() {
+async function main(_dest: string) {
+  const dest = path.resolve(_dest)
   const jaowebLatest = await getLatestRelease('jaoweb')
   const docsLatest = await getLatestRelease('jaoweb-docs')
   const latest =
@@ -103,8 +132,27 @@ async function main() {
   if (fs.existsSync('./dist.tgz')) {
     fs.unlinkSync('./dist.tgz')
   }
+
+  await runCommand(`rm -rf $(ls -A)`, dest)
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true })
+  }
+  await runCommand(`cp -r $(ls -A) ${dest}`, './dist')
+
+  sendMessageForDiscord('', {
+    title: '`jaoafa.com` へのデプロイが完了',
+    url: `${latest.html_url}`,
+    color: 0x00ff00,
+  })
 }
 
 ;(async () => {
-  await main()
+  try {
+    await main(config.get("destDirectory"))
+  } catch (error) {
+    sendMessageForDiscord('', {
+      title: '`jaoafa.com` へのデプロイが失敗',
+      color: 0xff0000,
+    })
+  }
 })()
