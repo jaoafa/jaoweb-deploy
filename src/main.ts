@@ -124,7 +124,7 @@ async function main(_dest: string) {
   await downloadFile(latest.browser_download_url, './dist.tgz')
 
   if (fs.existsSync('./dist')) {
-    fs.rmdirSync('./dist', { recursive: true })
+    fs.rmSync('./dist', { recursive: true })
   }
   fs.mkdirSync('./dist', { recursive: true })
 
